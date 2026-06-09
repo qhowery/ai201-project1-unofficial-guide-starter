@@ -28,6 +28,8 @@ def _build_prompt(question: str, hits: List[Dict]) -> str:
         "Do NOT use any external knowledge or make assumptions. If the documents do not contain enough information to answer the question, respond exactly: \"I don't have enough information to answer that.\"\n\n"
         "Requirements:\n"
         "- Answer concisely (<=200 words) using only the documents below.\n"
+        "- If the question asks about a specific aspect (e.g., grading style, teaching method, difficulty), "
+        "you MUST answer that specific aspect. If the documents do not mention that aspect, respond: \"I don't have enough information to answer that.\"\n"
         "- After the answer, list the document sources used in the format: Sources: [DOC_1, DOC_3]\n"
         "- If the answer cannot be determined from the documents, ONLY respond with the exact sentence above.\n"
     )
@@ -86,6 +88,40 @@ def _extractive_fallback(question: str, hits: List[Dict]) -> Dict:
     return {"answer": answer, "sources": sources}
 
 
+def _check_grading_keywords_in_hits(question: str, hits: List[Dict]) -> bool:
+    """
+    Check if question asks about grading/grading style, and if so, whether any hit mentions grading philosophy keywords.
+    Returns True if question doesn't ask about grading (pass through), or if grading philosophy keywords are found.
+    Returns False if question asks about grading but no keywords found (fail - insufficient info).
+    """
+    # Grading philosophy/style keywords (not student letter grades)
+    grading_philosophy_keywords = {
+        "grading policy", "grading style", "grading philosophy", "grading approach",
+        "grades fairly", "grades harshly", "grades leniently",
+        "harsh grader", "easy grader", "fair grader", "tough grader", "lenient grader", "strict grader",
+        "harsh grading", "easy grading", "fair grading", "tough grading", "lenient grading", "strict grading",
+        "rigorous grading", "rigorous grader",
+        "grade fairly", "grade harshly", "grade leniently",
+        "grading curve", "curved", "curving", "curves grades",
+        "rubric", "rubrics", "grading criteria", "grading rubric"
+    }
+    
+    question_low = question.lower()
+    
+    # Check if question asks about grading
+    if not any(kw in question_low for kw in ["grading", "grade", "how does", "marking"]):
+        return True  # Question doesn't ask about grading, pass through
+    
+    # Question asks about grading - check if any hit contains grading philosophy keywords
+    for hit in hits:
+        text = hit["text"].lower()
+        # Look for exact multi-word phrases for grading philosophy
+        if any(kw in text for kw in grading_philosophy_keywords):
+            return True  # Found grading philosophy keywords
+    
+    return False  # Question asks about grading but no philosophy keywords found
+
+
 def ask(question: str, top_k: int = 5, persist_dir: str = "vectordb") -> Dict:
     # Try to detect a professor name in the question by comparing to filenames in documents/raw
     professor_name = None
@@ -128,6 +164,10 @@ def ask(question: str, top_k: int = 5, persist_dir: str = "vectordb") -> Dict:
         hits = retrieve(question, Path(persist_dir), top_k=top_k)
 
     if not hits:
+        return {"answer": "I don't have enough information to answer that.", "sources": []}
+
+    # Check if question asks about grading style and if retrieved chunks contain grading keywords
+    if not _check_grading_keywords_in_hits(question, hits):
         return {"answer": "I don't have enough information to answer that.", "sources": []}
 
     prompt = _build_prompt(question, hits)

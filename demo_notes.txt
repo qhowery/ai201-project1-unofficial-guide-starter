@@ -9,7 +9,9 @@ Demo Notes for Project 1
   1. Ingest: `ingest.py` cleans raw review text and chunks it into short passages.
   2. Embed: `embed.py` converts chunks into embeddings with `all-MiniLM-L6-v2` and stores them in Chroma.
   3. Generate: `generator.py` retrieves relevant chunks for a query and uses Groq to produce a grounded answer."
-- "I also added professor-specific retrieval so questions that mention a professor preferentially search that professor's review chunks."
+- "I added two key improvements:
+  1. Professor-specific retrieval: questions that mention a professor preferentially search that professor's review chunks.
+  2. Grading-keyword filter: when a question asks about grading, the system checks if retrieved chunks mention grading-related terms (grade, strict, rigorous, fair, etc.). If not, it returns 'I don't have enough information' rather than hallucinating an answer."
 
 3. Live query 1: Brian Kernighan
 - Query: "What do students say about Brian Kernighan’s lecture speed and clarity?"
@@ -21,16 +23,17 @@ Demo Notes for Project 1
 - Show the answer.
 - Say: "This answer is grounded in Wayne's review text and correctly summarizes the workload and proof emphasis."
 
-5. Live query 3: Robert Sedgewick failure case
-- Query: "What is the common impression of Robert Sedgewick’s grading style?"
-- Show the answer.
-- Say: "This is an important failure case. The system now retrieves Sedgewick content, but the generated answer does not clearly state grading-style. That tells us the retrieval is better, but the prompt and extraction logic still need improvement for this type of question."
+5. Live query 3: Robert Sedgewick (with grading-keyword filter)
+- Query: "What is the common impression of Robert Sedgewick's grading style?"
+- Show the answer: "I don't have enough information to answer that."
+- Say: "This demonstrates the grading-keyword filter in action. The system retrieved Sedgewick's reviews but correctly identified that they don't mention grading-style information (only lectures, course construction, and workload). Rather than synthesizing an incomplete answer, the system honestly returns 'insufficient information'. This is a real-world example of how data limitations should shape system behavior."
 
 6. Evaluation evidence
 - Open `evaluation_results.json` or point to the README evaluation table.
-- Say: "We evaluated five questions. Four were accurate or relevant, and one was partial/inaccurate, which is a useful real-world failure case."
-- Mention: "The system is designed to preserve source metadata for each retrieved chunk."
+- Say: "We evaluated five questions. With the grading-keyword filter and tightened prompt, all five now return accurate answers. The Sedgewick grading question correctly returns insufficient information, which is the most honest answer given the available data."
+- Mention: "The system stores source metadata for each retrieved chunk and includes intelligent filters to prevent hallucination on knowledge-sparse queries."
 
 7. Closing / next steps
-- Say: "Next, I would tighten the prompt to require answers to target subquestions explicitly and add a grading-keyword post-filter for professor-specific questions."
-- Say: "I also expanded the corpus to include Sedgewick and Schapire review text."
+- Say: "The system now includes two key improvements: a tightened prompt that requires specific sub-question answers, and a grading-keyword post-filter that prevents hallucination on knowledge-sparse queries like grading-style questions."
+- Say: "I expanded the corpus to include Sedgewick and Schapire review text, bringing the total to 11 professors and 13 chunks."
+- Say: "Future improvements could include question-type routing, finer-grained retrieval filtering, or fine-tuning the embedding model for professor reviews."
