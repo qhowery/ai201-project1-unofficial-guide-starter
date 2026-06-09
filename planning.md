@@ -20,19 +20,19 @@
 
 | # | Source | Description | URL or location |
 |---|--------|-------------|-----------------|
-| 1 | RateMyProfessor| Brian Kernighan reviews | https://www.ratemyprofessors.com/professor/571958|
-| 2 | RateMyProfessor| Kevin Wayne reviews| https://www.ratemyprofessors.com/professor/1191110|
-| 3 | RateMyProfessor| Kai Li reviews | https://www.ratemyprofessors.com/professor/1053812|
-| 4 | RateMyProfessor| Robert Sedgewick reviews | https://www.ratemyprofessors.com/professor/2108908|
-| 5 | RateMyProfessor| Andrew Appel reviews | https://www.ratemyprofessors.com/professor/2016822|
-| 6 | RateMyProfessor| Fei-Fei Li reviews | https://www.ratemyprofessors.com/professor/999616|
-| 7 | RateMyProfessor| Rebecca Fiebrink reviews | https://www.ratemyprofessors.com/professor/1781042|
-| 8 | RateMyProfessor| Robert Schapire reviews | https://www.ratemyprofessors.com/professor/https://www.ratemyprofessors.com/professor/1810546|
-| 9 | RateMyProfessor| Sanjeev Arora reviews | https://www.ratemyprofessors.com/professor/568904|
-| 10 | RateMyProfessor| Douglas Clark reviews | https://www.ratemyprofessors.com/professor/2020550|
+| 1 | RateMyProfessor | Brian Kernighan reviews | `documents/raw/kernighan_reviews.txt` |
+| 2 | RateMyProfessor | Kevin Wayne reviews | `documents/raw/wayne_reviews.txt` |
+| 3 | RateMyProfessor | Kai Li reviews | `documents/raw/li_reviews.txt` |
+| 4 | RateMyProfessor | Andrew Appel reviews | `documents/raw/andrew_appel_reviews.txt` |
+| 5 | RateMyProfessor | Andrew Appel alternate reviews | `documents/raw/appel_reviews.txt` |
+| 6 | RateMyProfessor | Fei-Fei Li reviews | `documents/raw/fei_fei_li_reviews.txt` |
+| 7 | RateMyProfessor | Rebecca Fiebrink reviews | `documents/raw/rebecca_fiebrink_reviews.txt` |
+| 8 | RateMyProfessor | Robert Schapire reviews | `documents/raw/robert_schapire_reviews.txt` |
+| 9 | RateMyProfessor | Robert Sedgewick reviews | `documents/raw/robert_sedgewick_reviews.txt` |
+| 10 | RateMyProfessor | Sanjeev Arora reviews | `documents/raw/sanjeev_arora_reviews.txt` |
+| 11 | RateMyProfessor | Douglas Clark reviews | `documents/raw/douglas_clark_reviews.txt` |
 
-> Local test documents are stored as plain text files in `documents/raw/`, including `kernighan_reviews.txt`, `wayne_reviews.txt`, `appel_reviews.txt`, and `li_reviews.txt`.
-
+> Local review documents are stored as plain text files in `documents/raw/` and processed by `ingest.py`.
 ---
 
 ## Chunking Strategy
@@ -42,17 +42,17 @@
      numbers fit the structure of your documents.
      A review-heavy corpus warrants different chunking than a long FAQ. -->
 
-**Chunk size:** 200 tokens (approximately 1200–1500 characters)
+**Chunk size:** 200 words (approximately 1200–1500 characters)
 
-**Overlap:** 50 tokens (approximately 300–400 characters)
+**Overlap:** 50 words (approximately 300–400 characters)
 
 **Reasoning:**
-- RateMyProfessor review pages are built from short, user-generated comments that often switch topics between workload, exams, and teaching style.
-- A 200-token chunk is small enough to keep each review or review segment focused, while still capturing enough context to understand meaning.
-- The 50-token overlap prevents important opinions from being split across chunks, which is especially important when a single review sentence spans two topics.
-- Preprocessing will remove navigation boilerplate and HTML tags while preserving professor names, ratings, and source URL metadata for each chunk.
+- RateMyProfessor review pages are built from short, user-generated comments that often jump between workload, exams, teaching style, and grading.
+- A 200-word chunk keeps each chunk focused on a short review segment while preserving enough context for meaning.
+- The 50-word overlap prevents important opinions from being split across chunk boundaries, especially when a single review comment spans multiple topics.
+- Preprocessing removes HTML boilerplate and navigation artifacts while preserving professor names, ratings, and source metadata.
 
-**Final chunk count:** 5 (current sample documents)
+**Final chunk count:** 13 chunks across 11 documents.
 
 ---
 
@@ -69,10 +69,11 @@
 **Top-k:** 5
 
 **Production tradeoff reflection:**
-- all-MiniLM-L6-v2 is a strong fit for short review text because it is fast, cost-efficient, and effective for semantic similarity on conversational content.
+- all-MiniLM-L6-v2 is a strong fit for short review text because it is fast, cost-efficient, and effective for semantic similarity on conversational text.
 - If cost were not a constraint, I would choose a larger embedding model such as OpenAI’s text-embedding-3-large or a domain-finetuned variant to capture subtle cues in professor feedback and grading comments.
 - For real users I would weigh accuracy versus latency: higher-quality embeddings can improve retrieval precision, but they are slower and more expensive.
 - Since the domain is primarily English and review-focused, multilingual support is less important than robustness to informal phrasing.
+- I would also consider an out-of-domain detection threshold in production so the system can refuse unrelated queries rather than attempt to answer them from noisy review text.
 
 ---
 
@@ -133,7 +134,7 @@ flowchart TD
 ```
 
 - Document Ingestion: scrape or load RateMyProfessor pages, clean text, remove navigation/HTML boilerplate.
-- Chunking: split reviews into 200-token chunks with 50-token overlap and attach professor/source metadata.
+- Chunking: split reviews into 200-word chunks with 50-word overlap and attach professor/source metadata.
 - Embedding + Vector Store: embed chunks with all-MiniLM-L6-v2 and store vectors in Chroma.
 - Retrieval: run top-5 similarity search on query embeddings.
 - Generation: use a grounded prompt to answer from retrieved chunks and cite sources.

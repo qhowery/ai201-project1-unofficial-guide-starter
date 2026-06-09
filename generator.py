@@ -92,7 +92,7 @@ def _check_grading_keywords_in_hits(question: str, hits: List[Dict]) -> bool:
     """
     Check if question asks about grading/grading style, and if so, whether any hit mentions grading philosophy keywords.
     Returns True if question doesn't ask about grading (pass through), or if grading philosophy keywords are found.
-    Returns False if question asks about grading but no keywords found (fail - insufficient info).
+    Returns False if question asks about grading but no philosophy keywords found (fail - insufficient info).
     """
     # Grading philosophy/style keywords (not student letter grades)
     grading_philosophy_keywords = {
@@ -115,11 +115,19 @@ def _check_grading_keywords_in_hits(question: str, hits: List[Dict]) -> bool:
     # Question asks about grading - check if any hit contains grading philosophy keywords
     for hit in hits:
         text = hit["text"].lower()
-        # Look for exact multi-word phrases for grading philosophy
         if any(kw in text for kw in grading_philosophy_keywords):
             return True  # Found grading philosophy keywords
     
     return False  # Question asks about grading but no philosophy keywords found
+
+
+def _check_domain_confidence(hits: List[Dict], threshold: float = 1.25) -> bool:
+    """
+    Return False when the top hit is too distant, suggesting the query is outside the professor review domain.
+    """
+    if not hits:
+        return False
+    return hits[0]["distance"] <= threshold
 
 
 def ask(question: str, top_k: int = 5, persist_dir: str = "vectordb") -> Dict:
@@ -164,6 +172,10 @@ def ask(question: str, top_k: int = 5, persist_dir: str = "vectordb") -> Dict:
         hits = retrieve(question, Path(persist_dir), top_k=top_k)
 
     if not hits:
+        return {"answer": "I don't have enough information to answer that.", "sources": []}
+
+    # Reject queries that appear outside the document domain
+    if not _check_domain_confidence(hits):
         return {"answer": "I don't have enough information to answer that.", "sources": []}
 
     # Check if question asks about grading style and if retrieved chunks contain grading keywords

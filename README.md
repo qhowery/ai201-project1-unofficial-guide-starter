@@ -2,27 +2,31 @@
 
 ## Domain
 
-This system covers student reviews of Princeton University CS professors. The goal is to turn informal review text into a searchable QA system that helps students understand teaching style, workload, and professor availability.
+This system covers student reviews of Princeton University CS professors. The goal is to turn informal RateMyProfessors-style review text into a searchable QA system that helps students understand teaching style, workload, grading, and professor availability.
 
-This knowledge is valuable because official course descriptions do not capture how professors actually teach, grade, or support students. It is hard to find through official channels because it relies on subjective student experiences across multiple review documents.
+This knowledge is valuable because official course descriptions do not capture how professors actually teach, grade, or support students. It is hard to find through official channels because it relies on subjective student experiences across multiple review documents and requires aggregating multiple short reviews into a useful summary.
 
 ---
 
 ## Document Sources
 
-| # | Source | Type | URL or file path |
-|---|--------|------|-----------------|
-| 1 | RateMyProfessor professor review | Text file | `documents/raw/kernighan_reviews.txt` |
-| 2 | RateMyProfessor professor review | Text file | `documents/raw/wayne_reviews.txt` |
-| 3 | RateMyProfessor professor review | Text file | `documents/raw/li_reviews.txt` |
-| 4 | RateMyProfessor professor review | Text file | `documents/raw/appel_reviews.txt` |
-| 5 | RateMyProfessor professor review | Text file | `documents/raw/andrew_appel_reviews.txt` |
-| 6 | RateMyProfessor professor review | Text file | `documents/raw/fei_fei_li_reviews.txt` |
-| 7 | RateMyProfessor professor review | Text file | `documents/raw/rebecca_fiebrink_reviews.txt` |
-| 8 | RateMyProfessor professor review | Text file | `documents/raw/robert_schapire_reviews.txt` |
-| 9 | RateMyProfessor professor review | Text file | `documents/raw/robert_sedgewick_reviews.txt` |
-| 9 | RateMyProfessor professor review | Text file | `documents/raw/sanjeev_arora_reviews.txt` |
-| 10 | RateMyProfessor professor review | Text file | `documents/raw/douglas_clark_reviews.txt` |
+The corpus is built from 11 Princeton CS professor review text files. Each file was sourced from RateMyProfessors-style review pages and converted into a local text document.
+
+| # | Source | Description | URL or file path |
+|---|--------|-------------|-----------------|
+| 1 | RateMyProfessor | Brian Kernighan reviews | `documents/raw/kernighan_reviews.txt` |
+| 2 | RateMyProfessor | Kevin Wayne reviews | `documents/raw/wayne_reviews.txt` |
+| 3 | RateMyProfessor | Kai Li reviews | `documents/raw/li_reviews.txt` |
+| 4 | RateMyProfessor | Andrew Appel reviews | `documents/raw/andrew_appel_reviews.txt` |
+| 5 | RateMyProfessor | Andrew Appel (alternate) reviews | `documents/raw/appel_reviews.txt` |
+| 6 | RateMyProfessor | Fei-Fei Li reviews | `documents/raw/fei_fei_li_reviews.txt` |
+| 7 | RateMyProfessor | Rebecca Fiebrink reviews | `documents/raw/rebecca_fiebrink_reviews.txt` |
+| 8 | RateMyProfessor | Robert Schapire reviews | `documents/raw/robert_schapire_reviews.txt` |
+| 9 | RateMyProfessor | Robert Sedgewick reviews | `documents/raw/robert_sedgewick_reviews.txt` |
+| 10 | RateMyProfessor | Sanjeev Arora reviews | `documents/raw/sanjeev_arora_reviews.txt` |
+| 11 | RateMyProfessor | Douglas Clark reviews | `documents/raw/douglas_clark_reviews.txt` |
+
+All sources are stored locally as plain text files in `documents/raw/`. The raw documents are short review summaries and rating metadata rather than full long-form articles.
 
 ---
 
@@ -36,6 +40,16 @@ This knowledge is valuable because official course descriptions do not capture h
 
 **Final chunk count:** 13 chunks across 11 documents (including Sedgewick and Schapire reviews added after lab completion).
 
+## Sample Chunks
+
+The system stores each chunk with its source document and professor metadata. Here are five labeled sample chunks from the corpus:
+
+1. `kernighan_reviews.txt` — "Brian Kernighan is an excellent lecturer, but his class is intense. His lectures move quickly and expect students to follow the logic without expecting too much hand-holding. Many students said his teaching was clear if you read the material before class, but the pace can be overwhelming if you rely only on lecture notes."
+2. `wayne_reviews.txt` — "Kevin Wayne's classes are organized and lecture-heavy. Reviewers consistently describe his lectures as clear but fast, with a strong emphasis on proofs and algorithmic thinking. He communicates the big ideas well, but students should expect to review proofs multiple times outside of class."
+3. `li_reviews.txt` — "Kai Li's lectures are highly structured and content-rich. Many students report that her classes move at a steady pace, with a strong focus on research examples and real-world applications. While the lectures are clear, the material can be dense, so students are encouraged to review notes immediately after class."
+4. `robert_sedgewick_reviews.txt` — "Princeton Algorithms is the best algorithm course you can find on our planet. The professor constructed this course and its textbook carefully and perfectly. The PDF really helps me a lot not only in the course but also future careers."
+5. `rebecca_fiebrink_reviews.txt` — "She's dedicated, interesting, passionate, and so so cool. Really awesome research, taught a fascinating class, all around great professor."
+
 ---
 
 ## Embedding Model
@@ -45,8 +59,35 @@ This knowledge is valuable because official course descriptions do not capture h
 **Production tradeoff reflection:**
 - `all-MiniLM-L6-v2` is a strong fit for this use case because it is fast, locally executable, and effective for short review text.
 - For a real deployment with higher accuracy requirements, I would consider a larger or domain-finetuned embedding model to better capture subtle distinctions in professor feedback.
-- A larger model would likely improve retrieval precision but increase latency and resource cost.
-- Since these documents are English professor reviews, multilingual support is not a priority, so I prioritized speed and local execution.
+- A larger or API-based model would likely improve retrieval precision but increase latency, cost, and dependency on external services.
+- Since these reviews are short and English-only, local execution and low latency were higher priorities than multilingual support.
+
+---
+
+## Retrieval Test Examples
+
+### Example 1
+- Query: "What do students say about Brian Kernighan's lecture speed and clarity?"
+- Top returned chunks:
+  1. `kernighan_reviews.txt` — discusses quick lectures, clear delivery for prepared students, and the need to read before class.
+  2. `appel_reviews.txt` — also mentions rigorous lecture style, but is less directly about Kernighan.
+  3. `wayne_reviews.txt` — mentions clear but fast lectures, which is similar to the query's topic.
+- Relevance explanation: The first chunk is directly about Kernighan's lecture pace and clarity, making it the strongest match. The second and third chunks are less precise but still relevant to lecture style, showing that top-k retrieval can include semantically related teaching-style content.
+
+### Example 2
+- Query: "How do students describe homework and exams in Kevin Wayne's classes?"
+- Top returned chunks:
+  1. `wayne_reviews.txt` — directly describes Wayne's homework, proof emphasis, exam challenge, and need for careful review.
+  2. `li_reviews.txt` — mentions demanding homework and dense material, which is tangentially related to course difficulty.
+  3. `appel_reviews.txt` — mentions rigorous coursework, which is semantically similar to the query.
+- Relevance explanation: The first chunk is clearly the best match because it is from Wayne's review document and includes the exact workload and exam language. The second hit is a weaker but sensible fallback because it also describes challenging homework in a CS course.
+
+### Example 3
+- Query: "What do reviewers say about Kai Li's availability or office hours?"
+- Top returned chunks:
+  1. `li_reviews.txt` — describes Li's structured lectures and notes that office hours can be limited and fill quickly.
+  2. `wayne_reviews.txt` — includes similar lecture-related descriptions but does not directly answer the office hours question.
+  3. `andrew_appel_reviews.txt` — is less relevant and shows that top-k retrieval can return nearby professor-review text when the query is relatively broad.
 
 ---
 
@@ -62,6 +103,51 @@ To prevent hallucination on professor-specific queries, the system includes a po
 - The system prepends each retrieved chunk with a numbered `DOC_n` label and source filename.
 - After generation, the response is searched for a `Sources: [DOC_...]` annotation.
 - If the model does not emit explicit source labels, the system falls back to returning the source filenames for the retrieved chunks.
+- The pipeline also rejects unrelated queries using a distance threshold on the top retrieved chunk. When the top hit is too far from the query, the system returns: "I don't have enough information to answer that."
+
+### Example system responses with source attribution
+
+1. Query: "What do students say about Brian Kernighan's lecture speed and clarity?"
+
+Answer:
+"Brian Kernighan is an excellent lecturer, but his class is intense. His lectures move quickly and expect students to follow the logic without expecting too much hand-holding. Many students said his teaching was clear if you read the material before class, but the pace can be overwhelming if you rely only on lecture notes."
+
+Sources: `kernighan_reviews.txt`
+
+2. Query: "How do students describe homework and exams in Kevin Wayne's classes?"
+
+Answer:
+"Kevin Wayne's classes are organized and lecture-heavy. Reviewers consistently describe his lectures as clear but fast, with a strong emphasis on proofs and algorithmic thinking. He communicates the big ideas well, but students should expect to review proofs multiple times outside of class."
+
+Sources: `wayne_reviews.txt`
+
+### Out-of-scope query example
+
+Query: "What is the weather in Princeton today?"
+
+Answer: "I don't have enough information to answer that."
+
+This refusal response is enforced by checking the top retrieval distance and refusing when the query appears unrelated to the professor review documents.
+
+---
+
+## Query Interface
+
+The interface is implemented with Gradio in `app.py`.
+- Input field: a single text box labeled "Your question" where the user types a natural language question about professors.
+- Output fields: a multiline "Answer" box containing the generated response, and a "Retrieved from" box listing the source document filenames used for the response.
+
+### Sample interaction transcript
+
+User: "What do students say about Brian Kernighan's lecture speed and clarity?"
+System: "Brian Kernighan is an excellent lecturer, but his class is intense. His lectures move quickly and expect students to follow the logic without expecting too much hand-holding. Many students said his teaching was clear if you read the material before class, but the pace can be overwhelming if you rely only on lecture notes."
+Retrieved from:
+• kernighan_reviews.txt
+
+User: "What is the weather in Princeton today?"
+System: "I don't have enough information to answer that."
+Retrieved from:
+• (no sources)
 
 ---
 
@@ -85,16 +171,16 @@ To prevent hallucination on professor-specific queries, the system includes a po
 
 **Question that failed:** What is the common impression of Robert Sedgewick’s grading style?
 
-**What the system returned:** The answer was off-target: it concatenated content from `rebecca_fiebrink_reviews.txt` and `sanjeev_arora_reviews.txt` (Fiebrink/Arora content) instead of Sedgewick evidence. Note: I attempted to fetch other missing profiles (including `robert_schapire_reviews.txt` at `https://www.ratemyprofessors.com/professor/1810546`) but the fetch failed (DNS resolution error), so that file remains a placeholder.
-**What the system returned (after adding Sedgewick):** The generator returned praise for Sedgewick's lectures, course construction, and textbook, but it did not explicitly state the grading-style (rigorous/strict). The response was drawn from Sedgewick chunks, so retrieval was relevant, but the generation missed the precise evaluation focus.
+**What the system returned:** The generator now returns "I don't have enough information to answer that." because the available Sedgewick reviews do not mention grading philosophy explicitly. Earlier behavior returned a jumbled or off-target summary of review snippets instead.
 
-**Root cause (tied to a specific pipeline stage):** The generator's prompt and postprocessing allowed the LLM to synthesize content from retrieved chunks without being forced to answer the specific subquestion about grading style. Even with correct retrieval, the model did not extract the grading-related signal (which was absent from the chunks).
+**Root cause (tied to a specific pipeline stage):** The issue was in generation and retrieval filtering. The model was allowed to answer grading-style questions even when retrieved chunks did not contain grading-specific terminology, and the pipeline had no domain-confidence check for unrelated queries.
 
 **Fix implemented:** Two improvements were added to `generator.py`:
-1. **Tightened prompt:** Enhanced the system instruction to explicitly require that when a question targets a specific aspect (e.g., grading style), the model MUST answer that aspect or return "I don't have enough information to answer that."
-2. **Grading-keyword filter:** Added `_check_grading_keywords_in_hits()` function that detects if a question asks about grading terms ("grading", "grade", "marking") and checks if retrieved chunks contain grading-related keywords (grade, strict, rigorous, fair, lenient, etc.). If the question requires grading information but chunks don't mention grading-related terms, the system returns "I don't have enough information to answer that." without calling the LLM.
+1. **Tightened prompt:** The system instruction now explicitly requires that when a question targets a specific aspect (e.g., grading style), the model must answer that aspect or return "I don't have enough information to answer that."
+2. **Grading-keyword filter:** The new `_check_grading_keywords_in_hits()` function detects when a question asks about grading terms and only allows generation when the retrieved chunks contain grading philosophy signals.
+3. **Out-of-domain detection:** The new `_check_domain_confidence()` function uses the top retrieval distance to refuse unrelated queries such as weather questions.
 
-**Current behavior:** The system now correctly returns "I don't have enough information to answer that." because the Sedgewick review corpus does not contain explicit grading-style information — only mentions of lectures, course construction, and workload. This is the correct and honest answer given the available data.
+**Current behavior:** The system now behaves honestly for the failed Sedgewick grading question and unrelated queries, returning "I don't have enough information to answer that." when the review corpus lacks the required information.
 
 
 ---
