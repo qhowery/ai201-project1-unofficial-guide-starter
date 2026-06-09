@@ -1,0 +1,37 @@
+[
+  {
+    "question": "What do students say about Brian Kernighan\u2019s lecture speed and clarity?",
+    "answer": "Brian Kernighan is an excellent lecturer, but his class is intense. His lectures move quickly and expect students to follow the logic without expecting too much hand-holding. Many students said his teaching was clear if you read the material before class, but the pace can be overwhelming if you rely only on lecture notes.",
+    "sources": [
+      "kernighan_reviews.txt"
+    ]
+  },
+  {
+    "question": "How do students describe homework and exams in Kevin Wayne\u2019s classes?",
+    "answer": "Kevin Wayne's classes are organized and lecture-heavy. Reviewers consistently describe his lectures as clear but fast, with a strong emphasis on proofs and algorithmic thinking. He communicates the big ideas well, but students should expect to review proofs multiple times outside of class.",
+    "sources": [
+      "wayne_reviews.txt"
+    ]
+  },
+  {
+    "question": "What do reviewers say about Kai Li\u2019s availability or office hours?",
+    "answer": "Kai Li's lectures are highly structured and content-rich. Reviewers say that the assignments are useful for learning the material, but they can be time-consuming, especially when the problems require careful reasoning. Students generally find Kai Li accessible, but some noted that office hours are limited and appointments fill quickly.",
+    "sources": [
+      "li_reviews.txt"
+    ]
+  },
+  {
+    "question": "What is the common impression of Robert Sedgewick\u2019s grading style?",
+    "answer": "No Online Class: Yes loving his coursera course. INSPIRATIONAL AMAZING LECTURES SCARING Helpful: 20 QUALITY 5.0 DIFFICULTY 4.0 COS126 Apr 25th, 2017 Attendance: Mandatory Would Take Again: Yes Grade: A Textbook: Yes bob sedgewick is the only computer scientist you will ever need Notes: - Reviews emphasize Sedgewick's clear, inspirational lectures, well-constructed course and textbook, high workload, and strong student regard. SOURCE: 5/5 Overall Quality Based on 3 ratings # Robert Sedgewick Professor in the Computer Science department at Princeton University 100% Would take again Level of Difficulty: 4.3 Rating Distribution: - Awesome 5: 3 - Great 4: 0 - Good 3: 0 - OK 2: 0 - Awful 1: 0 3 Student Ratings \u2014 All courses QUALITY 5.0 DIFFICULTY 5.0 COURSE R1 Nov 19th, 2020 Attendance: Not Mandatory Would Take Again: Yes Grade: A Textbook: Yes Online Class: Yes Princeton Algorithms is the best algorithm course you can find on our planet.",
+    "sources": [
+      "robert_sedgewick_reviews.txt"
+    ]
+  },
+  {
+    "question": "How do students characterize Andrew Appel\u2019s teaching style and workload?",
+    "answer": "Notes: - Multiple reviewers describe Appel's classes as rigorous and detail-oriented. - Students report dense material and a heavy workload; many recommend reading carefully and asking questions early.",
+    "sources": [
+      "andrew_appel_reviews.txt"
+    ]
+  }
+]

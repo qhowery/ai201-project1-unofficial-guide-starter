@@ -11,7 +11,7 @@
 
 <!-- What domain did you choose? Why is this knowledge valuable and hard to find through official channels? -->
 
----
+--- I chose the domain "student reviews of CS professors at Princeton University". It is valuable because incoming students can be informed of their professors. It's hard to find because Princeton does not back this with an official review site. 
 
 ## Documents
 
@@ -20,16 +20,18 @@
 
 | # | Source | Description | URL or location |
 |---|--------|-------------|-----------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
-| 9 | | | |
-| 10 | | | |
+| 1 | RateMyProfessor| Brian Kernighan reviews | https://www.ratemyprofessors.com/professor/571958|
+| 2 | RateMyProfessor| Kevin Wayne reviews| https://www.ratemyprofessors.com/professor/1191110|
+| 3 | RateMyProfessor| Kai Li reviews | https://www.ratemyprofessors.com/professor/1053812|
+| 4 | RateMyProfessor| Robert Sedgewick reviews | https://www.ratemyprofessors.com/professor/2108908|
+| 5 | RateMyProfessor| Andrew Appel reviews | https://www.ratemyprofessors.com/professor/2016822|
+| 6 | RateMyProfessor| Fei-Fei Li reviews | https://www.ratemyprofessors.com/professor/999616|
+| 7 | RateMyProfessor| Rebecca Fiebrink reviews | https://www.ratemyprofessors.com/professor/1781042|
+| 8 | RateMyProfessor| Robert Schapire reviews | https://www.ratemyprofessors.com/professor/https://www.ratemyprofessors.com/professor/1810546|
+| 9 | RateMyProfessor| Sanjeev Arora reviews | https://www.ratemyprofessors.com/professor/568904|
+| 10 | RateMyProfessor| Douglas Clark reviews | https://www.ratemyprofessors.com/professor/2020550|
+
+> Local test documents are stored as plain text files in `documents/raw/`, including `kernighan_reviews.txt`, `wayne_reviews.txt`, `appel_reviews.txt`, and `li_reviews.txt`.
 
 ---
 
@@ -40,11 +42,17 @@
      numbers fit the structure of your documents.
      A review-heavy corpus warrants different chunking than a long FAQ. -->
 
-**Chunk size:**
+**Chunk size:** 200 tokens (approximately 1200–1500 characters)
 
-**Overlap:**
+**Overlap:** 50 tokens (approximately 300–400 characters)
 
 **Reasoning:**
+- RateMyProfessor review pages are built from short, user-generated comments that often switch topics between workload, exams, and teaching style.
+- A 200-token chunk is small enough to keep each review or review segment focused, while still capturing enough context to understand meaning.
+- The 50-token overlap prevents important opinions from being split across chunks, which is especially important when a single review sentence spans two topics.
+- Preprocessing will remove navigation boilerplate and HTML tags while preserving professor names, ratings, and source URL metadata for each chunk.
+
+**Final chunk count:** 5 (current sample documents)
 
 ---
 
@@ -56,11 +64,15 @@
      would you weigh in choosing a different embedding model — context length, multilingual
      support, accuracy on domain-specific text, latency? -->
 
-**Embedding model:**
+**Embedding model:** all-MiniLM-L6-v2 via sentence-transformers
 
-**Top-k:**
+**Top-k:** 5
 
 **Production tradeoff reflection:**
+- all-MiniLM-L6-v2 is a strong fit for short review text because it is fast, cost-efficient, and effective for semantic similarity on conversational content.
+- If cost were not a constraint, I would choose a larger embedding model such as OpenAI’s text-embedding-3-large or a domain-finetuned variant to capture subtle cues in professor feedback and grading comments.
+- For real users I would weigh accuracy versus latency: higher-quality embeddings can improve retrieval precision, but they are slower and more expensive.
+- Since the domain is primarily English and review-focused, multilingual support is less important than robustness to informal phrasing.
 
 ---
 
@@ -73,11 +85,11 @@
 
 | # | Question | Expected answer |
 |---|----------|-----------------|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
+| 1 | What do students say about Brian Kernighan’s lecture speed and clarity? | Students should say his lectures are fast-paced, technically deep, and generally clear for engaged learners. |
+| 2 | How do students describe homework and exams in Kevin Wayne’s classes? | Students should report that his homework and exams are challenging, proof-heavy, and require consistent effort. |
+| 3 | What do reviewers say about Kai Li’s availability or office hours? | Expected answer: she is helpful and responsive, but office hours can be limited or hard to schedule. |
+| 4 | What is the common impression of Robert Sedgewick’s grading style? | Expected answer: grading is rigorous and strict, but many students consider it fair. |
+| 5 | How do students characterize Andrew Appel’s teaching style and workload? | Expected answer: his teaching is rigorous and detail-oriented, with a heavy workload and strong emphasis on correctness. |
 
 ---
 
@@ -87,9 +99,14 @@
      Consider: noisy or inconsistent documents, missing source attribution, off-topic
      retrieval, chunks that split key information across boundaries. -->
 
-1.
+1. The source pages may include navigation, ads, or other non-review text that could pollute embeddings and retrieval.
+   - Mitigation: strip HTML boilerplate, only index review text, and preserve source metadata per chunk.
 
-2.
+2. Reviews often mix multiple topics in a single comment, so chunk boundaries could separate workload, exam, and teaching-style signals.
+   - Mitigation: use moderate overlap and validate retrieval on test queries to ensure topic continuity.
+
+3. Grounded generation can still hallucinate if the LLM sees loosely related chunks.
+   - Mitigation: use a strict prompt that instructs the model to answer only from retrieved evidence and to say "I don’t know" when the documents do not contain the answer.
 
 ---
 
@@ -100,6 +117,26 @@
      Label each stage with the tool or library you're using.
      You can use ASCII art, a Mermaid diagram, or embed a sketch as an image.
      You'll use this diagram as context when prompting AI tools to implement each stage. -->
+
+```mermaid
+flowchart TD
+  A[Document Ingestion] --> B[Chunking]
+  B --> C[Embedding + Vector Store]
+  C --> D[Retrieval]
+  D --> E[Generation]
+
+  A -->|ingest.py| B
+  B -->|chunk_text()| C
+  C -->|SentenceTransformers + Chroma| D
+  D -->|top-k similarity search| E
+  E -->|generator.py| User
+```
+
+- Document Ingestion: scrape or load RateMyProfessor pages, clean text, remove navigation/HTML boilerplate.
+- Chunking: split reviews into 200-token chunks with 50-token overlap and attach professor/source metadata.
+- Embedding + Vector Store: embed chunks with all-MiniLM-L6-v2 and store vectors in Chroma.
+- Retrieval: run top-5 similarity search on query embeddings.
+- Generation: use a grounded prompt to answer from retrieved chunks and cite sources.
 
 ---
 
@@ -116,7 +153,19 @@
      with my specified chunk size and overlap" is a plan. -->
 
 **Milestone 3 — Ingestion and chunking:**
+- Tool: ChatGPT or Copilot.
+- Input: this Chunking Strategy section and sample RateMyProfessor review text.
+- Expected output: a `chunk_text()` implementation that splits on sentences, applies overlap, and records professor/source metadata.
+- Verification: run the function on sample page text and confirm chunk lengths, overlap, and metadata are correct.
 
 **Milestone 4 — Embedding and retrieval:**
+- Tool: ChatGPT or Copilot.
+- Input: Retrieval Approach section and sample chunk data.
+- Expected output: a vector store builder and a retrieval function returning the top-5 most relevant chunks.
+- Verification: query known phrases and confirm retrieved chunks match expected professor review content.
 
 **Milestone 5 — Generation and interface:**
+- Tool: ChatGPT or Copilot.
+- Input: Grounded Generation prompt structure and retrieved chunk examples.
+- Expected output: a grounded response generator that uses retrieved evidence and cites professor sources.
+- Verification: run the 5 evaluation questions and confirm answers are evidence-based and correctly attributed.
